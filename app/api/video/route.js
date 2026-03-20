@@ -4,22 +4,21 @@ export async function POST(req) {
   try {
     const { title } = await req.json()
     const timeline = {
-      background: '#0a0a1a',
+      background: '#000000',
       tracks: [
         {
           clips: [{
-            asset: { type: 'video', src: 'https://cdn.coverr.co/videos/coverr-aerial-view-of-city-at-night-1634/1080p.mp4', trim: 0, volume: 0 },
+            asset: {
+              type: 'title',
+              text: title,
+              style: 'blockbuster',
+              color: '#FFD700',
+              size: 'large',
+              background: 'transparent',
+              position: 'center'
+            },
             start: 0,
-            length: 30,
-            fit: 'cover',
-            opacity: 0.4
-          }]
-        },
-        {
-          clips: [{
-            asset: { type: 'title', text: title, style: 'minimal', color: '#FFD700', size: 'large', background: 'transparent', position: 'bottom' },
-            start: 0,
-            length: 30
+            length: 10
           }]
         }
       ]
@@ -34,6 +33,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Shotstack: ' + err }, { status: 500 })
     }
     const data = await res.json()
+    if (!data.response || !data.response.id) {
+      return NextResponse.json({ error: 'No render ID: ' + JSON.stringify(data) }, { status: 500 })
+    }
     return NextResponse.json({ renderId: data.response.id })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
@@ -48,7 +50,7 @@ export async function GET(req) {
       headers: { 'x-api-key': process.env.SHOTSTACK_API_KEY }
     })
     const data = await res.json()
-    return NextResponse.json({ status: data.response.status, url: data.response.url })
+    return NextResponse.json({ status: data.response.status, url: data.response.url, error: data.response.error })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
