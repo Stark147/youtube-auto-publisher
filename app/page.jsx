@@ -18,7 +18,6 @@ export default function Home() {
     setError('')
     setResult(null)
     setCurrentStep(0)
-
     try {
       setStatus('Generating script with Claude...')
       const scriptRes = await fetch('/api/generate', {
@@ -92,4 +91,8 @@ export default function Home() {
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>YouTube Auto Publisher</h1>
       <p style={{ color: '#666', marginBottom: 32 }}>Type a topic. Get a published YouTube video.</p>
 
-      <div style={{ marginBo
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }}>Video topic</label>
+        <input value={topic} onChange={e => setTopic(e.target.value)}
+          placeholder="e.g. Why smart people self-sabotage"
+          style={{ w
