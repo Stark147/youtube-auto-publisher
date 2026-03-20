@@ -27,7 +27,6 @@ export default function Home() {
       })
       const scriptData = await scriptRes.json()
       if (!scriptRes.ok) throw new Error(scriptData.error || 'Failed to generate script')
-
       setCurrentStep(1)
       setStatus('Creating voiceover with ElevenLabs...')
       const voiceRes = await fetch('/api/voiceover', {
@@ -37,7 +36,6 @@ export default function Home() {
       })
       const voiceData = await voiceRes.json()
       if (!voiceRes.ok) throw new Error(voiceData.error || 'Failed to create voiceover')
-
       setCurrentStep(2)
       setStatus('Rendering video with Shotstack...')
       const videoRes = await fetch('/api/video', {
@@ -47,36 +45,27 @@ export default function Home() {
       })
       const videoData = await videoRes.json()
       if (!videoRes.ok) throw new Error(videoData.error || 'Failed to start video render')
-
       setStatus('Waiting for video to render (this takes 3-5 minutes)...')
       let videoUrl = null
       let attempts = 0
       while (!videoUrl && attempts < 60) {
         await new Promise(r => setTimeout(r, 5000))
-        const pollRes = await fetch(`/api/video?id=${videoData.renderId}`)
+        const pollRes = await fetch('/api/video?id=' + videoData.renderId)
         const pollData = await pollRes.json()
         if (pollData.status === 'done') videoUrl = pollData.url
         else if (pollData.status === 'failed') throw new Error('Video render failed')
         attempts++
       }
       if (!videoUrl) throw new Error('Video render timed out')
-
       setCurrentStep(3)
       setStatus('Publishing to YouTube...')
       const pubRes = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoUrl,
-          title: scriptData.title,
-          description: scriptData.description,
-          tags: scriptData.tags,
-          accessToken
-        })
+        body: JSON.stringify({ videoUrl, title: scriptData.title, description: scriptData.description, tags: scriptData.tags, accessToken })
       })
       const pubData = await pubRes.json()
       if (!pubRes.ok) throw new Error(pubData.error || 'Failed to publish to YouTube')
-
       setResult(pubData)
       setStatus('Video published successfully!')
     } catch (e) {
@@ -86,13 +75,48 @@ export default function Home() {
     }
   }
 
+  const inputStyle = { width: '100%', padding: '10px 14px', fontSize: 15, border: '1px solid #ddd', borderRadius: 8, boxSizing: 'border-box' }
+  const labelStyle = { display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }
+
   return (
     <main style={{ maxWidth: 640, margin: '60px auto', padding: '0 24px', fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>YouTube Auto Publisher</h1>
       <p style={{ color: '#666', marginBottom: 32 }}>Type a topic. Get a published YouTube video.</p>
-
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }}>Video topic</label>
-        <input value={topic} onChange={e => setTopic(e.target.value)}
-          placeholder="e.g. Why smart people self-sabotage"
-          style={{ w
+        <label style={labelStyle}>Video topic</label>
+        <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. Why smart people self-sabotage" style={inputStyle} />
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <label style={labelStyle}>YouTube access token</label>
+        <input value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="Paste your OAuth access token" style={inputStyle} />
+      </div>
+      <button onClick={generate} disabled={loading} style={{ width: '100%', padding: '12px', fontSize: 15, fontWeight: 600, background: loading ? '#ccc' : '#ff0000', color: '#fff', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer' }}>
+        {loading ? 'Working...' : 'Generate and Publish Video'}
+      </button>
+      {loading && (
+        <div style={{ marginTop: 32 }}>
+          {steps.map((step, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: i < currentStep ? '#22c55e' : i === currentStep ? '#ff0000' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 700 }}>
+                {i < currentStep ? 'done' : i + 1}
+              </div>
+              <span style={{ fontSize: 14, color: i <= currentStep ? '#000' : '#999' }}>{step}</span>
+            </div>
+          ))}
+          <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>{status}</p>
+        </div>
+      )}
+      {error && (
+        <div style={{ marginTop: 24, padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8 }}>
+          <p style={{ color: '#dc2626', fontSize: 14, margin: 0 }}>{error}</p>
+        </div>
+      )}
+      {result && (
+        <div style={{ marginTop: 24, padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+          <p style={{ color: '#16a34a', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Video published!</p>
+          <a href={'https://youtube.com/watch?v=' + result.videoId} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: 14 }}>Watch on YouTube</a>
+        </div>
+      )}
+    </main>
+  )
+}
