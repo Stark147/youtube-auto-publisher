@@ -102,4 +102,4 @@ export default function Home() {
       <div style={{ marginBottom: 24 }}>
         <label style={{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }}>YouTube access token</label>
         <input value={accessToken} onChange={e => setAccessToken(e.target.value)}
-          placeholder="P
+          placeholder="Paste your OAuth access token"
