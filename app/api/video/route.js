@@ -3,40 +3,44 @@ import { NextResponse } from 'next/server'
 export async function POST(req) {
   try {
     const { audioUrl, title } = await req.json()
-    const elements = [
-      {
-        type: 'text',
-        text: title,
-        fill_color: '#FFD700',
-        font_family: 'Montserrat',
-        font_weight: '700',
-        font_size: '8 vmin',
-        y_alignment: '50%',
-        width: '80%',
-        height: '30%'
-      }
-    ]
+
+    const source = {
+      output_format: 'mp4',
+      width: 1280,
+      height: 720,
+      fill_color: '#0a0a1a',
+      elements: [
+        {
+          type: 'text',
+          text: title,
+          fill_color: '#FFD700',
+          font_family: 'Montserrat',
+          font_weight: '700',
+          font_size: '8 vmin',
+          x_alignment: '50%',
+          y_alignment: '50%',
+          width: '80%',
+          height: '30%'
+        }
+      ]
+    }
+
     if (audioUrl) {
-      elements.push({
+      source.elements.push({
         type: 'audio',
-        source: audioUrl,
-        duration: null
+        source: audioUrl
       })
     }
+
     const res = await fetch('https://api.creatomate.com/v1/renders', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + process.env.CREATOMATE_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        output_format: 'mp4',
-        width: 1280,
-        height: 720,
-        fill_color: '#0a0a1a',
-        elements: elements
-      })
+      body: JSON.stringify({ source })
     })
+
     if (!res.ok) {
       const err = await res.text()
       return NextResponse.json({ error: 'Creatomate: ' + err }, { status: 500 })
