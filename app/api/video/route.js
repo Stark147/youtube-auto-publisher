@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   try {
-    const { audioBase64, title } = await req.json()
+    const { title } = await req.json()
     const timeline = {
       background: '#0a0a1a',
       tracks: [
@@ -17,16 +17,9 @@ export async function POST(req) {
         },
         {
           clips: [{
-            asset: { type: 'audio', src: 'data:audio/mpeg;base64,' + audioBase64 },
-            start: 0,
-            length: 30
-          }]
-        },
-        {
-          clips: [{
             asset: { type: 'title', text: title, style: 'minimal', color: '#FFD700', size: 'large', background: 'transparent', position: 'bottom' },
             start: 0,
-            length: 5
+            length: 30
           }]
         }
       ]
@@ -38,7 +31,7 @@ export async function POST(req) {
     })
     if (!res.ok) {
       const err = await res.text()
-      return NextResponse.json({ error: 'Shotstack submit: ' + err }, { status: 500 })
+      return NextResponse.json({ error: 'Shotstack: ' + err }, { status: 500 })
     }
     const data = await res.json()
     return NextResponse.json({ renderId: data.response.id })
@@ -55,9 +48,7 @@ export async function GET(req) {
       headers: { 'x-api-key': process.env.SHOTSTACK_API_KEY }
     })
     const data = await res.json()
-    const status = data.response.status
-    const url = data.response.url
-    return NextResponse.json({ status, url, message: data.response.error || '' })
+    return NextResponse.json({ status: data.response.status, url: data.response.url })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
