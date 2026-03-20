@@ -92,14 +92,4 @@ export default function Home() {
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>YouTube Auto Publisher</h1>
       <p style={{ color: '#666', marginBottom: 32 }}>Type a topic. Get a published YouTube video.</p>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }}>Video topic</label>
-        <input value={topic} onChange={e => setTopic(e.target.value)}
-          placeholder="e.g. Why smart people self-sabotage"
-          style={{ width: '100%', padding: '10px 14px', fontSize: 15, border: '1px solid #ddd', borderRadius: 8, boxSizing: 'border-box' }} />
-      </div>
-
-      <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 }}>YouTube access token</label>
-        <input value={accessToken} onChange={e => setAccessToken(e.target.value)}
-          placeholder="Paste your OAuth access token"
+      <div style={{ marginBo
