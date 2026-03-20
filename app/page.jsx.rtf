@@ -1,0 +1,152 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 'use client'\
+import \{ useState \} from 'react'\
+\
+const steps = ['Generating Script', 'Creating Voiceover', 'Rendering Video', 'Publishing to YouTube']\
+\
+export default function Home() \{\
+  const [topic, setTopic] = useState('')\
+  const [accessToken, setAccessToken] = useState('')\
+  const [loading, setLoading] = useState(false)\
+  const [currentStep, setCurrentStep] = useState(-1)\
+  const [status, setStatus] = useState('')\
+  const [result, setResult] = useState(null)\
+  const [error, setError] = useState('')\
+\
+  async function generate() \{\
+    if (!topic || !accessToken) return alert('Please enter both topic and access token')\
+    setLoading(true)\
+    setError('')\
+    setResult(null)\
+    setCurrentStep(0)\
+    try \{\
+      setStatus('Generating script with Claude...')\
+      const scriptRes = await fetch('/api/generate', \{\
+        method: 'POST',\
+        headers: \{ 'Content-Type': 'application/json' \},\
+        body: JSON.stringify(\{ topic \})\
+      \})\
+      const scriptData = await scriptRes.json()\
+      if (!scriptRes.ok) throw new Error(scriptData.error || 'Failed to generate script')\
+\
+      setCurrentStep(1)\
+      setStatus('Creating voiceover with ElevenLabs...')\
+      const voiceRes = await fetch('/api/voiceover', \{\
+        method: 'POST',\
+        headers: \{ 'Content-Type': 'application/json' \},\
+        body: JSON.stringify(\{ script: scriptData.script \})\
+      \})\
+      const voiceData = await voiceRes.json()\
+      if (!voiceRes.ok) throw new Error(voiceData.error || 'Failed to create voiceover')\
+\
+      setCurrentStep(2)\
+      setStatus('Rendering video with Shotstack...')\
+      const videoRes = await fetch('/api/video', \{\
+        method: 'POST',\
+        headers: \{ 'Content-Type': 'application/json' \},\
+        body: JSON.stringify(\{ audioBase64: voiceData.audio, title: scriptData.title \})\
+      \})\
+      const videoData = await videoRes.json()\
+      if (!videoRes.ok) throw new Error(videoData.error || 'Failed to start video render')\
+\
+      setStatus('Waiting for video to render (this takes 3-5 minutes)...')\
+      let videoUrl = null\
+      let attempts = 0\
+      while (!videoUrl && attempts < 60) \{\
+        await new Promise(r => setTimeout(r, 5000))\
+        const pollRes = await fetch(`/api/video?id=$\{videoData.renderId\}`)\
+        const pollData = await pollRes.json()\
+        if (pollData.status === 'done') videoUrl = pollData.url\
+        else if (pollData.status === 'failed') throw new Error('Video render failed')\
+        attempts++\
+      \}\
+      if (!videoUrl) throw new Error('Video render timed out')\
+\
+      setCurrentStep(3)\
+      setStatus('Publishing to YouTube...')\
+      const pubRes = await fetch('/api/publish', \{\
+        method: 'POST',\
+        headers: \{ 'Content-Type': 'application/json' \},\
+        body: JSON.stringify(\{\
+          videoUrl,\
+          title: scriptData.title,\
+          description: scriptData.description,\
+          tags: scriptData.tags,\
+          accessToken\
+        \})\
+      \})\
+      const pubData = await pubRes.json()\
+      if (!pubRes.ok) throw new Error(pubData.error || 'Failed to publish to YouTube')\
+\
+      setResult(pubData)\
+      setStatus('Video published successfully!')\
+    \} catch (e) \{\
+      setError(e.message)\
+    \} finally \{\
+      setLoading(false)\
+    \}\
+  \}\
+\
+  return (\
+    <main style=\{\{ maxWidth: 640, margin: '60px auto', padding: '0 24px', fontFamily: 'system-ui, sans-serif' \}\}>\
+      <h1 style=\{\{ fontSize: 28, fontWeight: 700, marginBottom: 8 \}\}>YouTube Auto Publisher</h1>\
+      <p style=\{\{ color: '#666', marginBottom: 32 \}\}>Type a topic. Get a published YouTube video.</p>\
+\
+      <div style=\{\{ marginBottom: 16 \}\}>\
+        <label style=\{\{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 \}\}>Video topic</label>\
+        <input value=\{topic\} onChange=\{e => setTopic(e.target.value)\}\
+          placeholder="e.g. Why smart people self-sabotage"\
+          style=\{\{ width: '100%', padding: '10px 14px', fontSize: 15, border: '1px solid #ddd', borderRadius: 8, boxSizing: 'border-box' \}\} />\
+      </div>\
+\
+      <div style=\{\{ marginBottom: 24 \}\}>\
+        <label style=\{\{ display: 'block', fontSize: 13, marginBottom: 6, fontWeight: 500 \}\}>YouTube access token</label>\
+        <input value=\{accessToken\} onChange=\{e => setAccessToken(e.target.value)\}\
+          placeholder="Paste your OAuth access token"\
+          style=\{\{ width: '100%', padding: '10px 14px', fontSize: 15, border: '1px solid #ddd', borderRadius: 8, boxSizing: 'border-box' \}\} />\
+      </div>\
+\
+      <button onClick=\{generate\} disabled=\{loading\}\
+        style=\{\{ width: '100%', padding: '12px', fontSize: 15, fontWeight: 600, background: loading ? '#ccc' : '#ff0000', color: '#fff', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer' \}\}>\
+        \{loading ? 'Working...' : 'Generate & Publish Video'\}\
+      </button>\
+\
+      \{loading && (\
+        <div style=\{\{ marginTop: 32 \}\}>\
+          \{steps.map((step, i) => (\
+            <div key=\{i\} style=\{\{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 \}\}>\
+              <div style=\{\{ width: 24, height: 24, borderRadius: '50%', background: i < currentStep ? '#22c55e' : i === currentStep ? '#ff0000' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 700 \}\}>\
+                \{i < currentStep ? '\uc0\u10003 ' : i + 1\}\
+              </div>\
+              <span style=\{\{ fontSize: 14, color: i <= currentStep ? '#000' : '#999' \}\}>\{step\}</span>\
+            </div>\
+          ))\}\
+          <p style=\{\{ fontSize: 13, color: '#666', marginTop: 16 \}\}>\{status\}</p>\
+        </div>\
+      )\}\
+\
+      \{error && (\
+        <div style=\{\{ marginTop: 24, padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8 \}\}>\
+          <p style=\{\{ color: '#dc2626', fontSize: 14, margin: 0 \}\}>\{error\}</p>\
+        </div>\
+      )\}\
+\
+      \{result && (\
+        <div style=\{\{ marginTop: 24, padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 \}\}>\
+          <p style=\{\{ color: '#16a34a', fontSize: 14, fontWeight: 600, marginBottom: 8 \}\}>Video published!</p>\
+          <a href=\{`https://youtube.com/watch?v=$\{result.videoId\}`\} target="_blank" rel="noreferrer"\
+            style=\{\{ color: '#2563eb', fontSize: 14 \}\}>\
+            Watch on YouTube \uc0\u8594 \
+          </a>\
+        </div>\
+      )\}\
+    </main>\
+  )\
+\}\
+}
